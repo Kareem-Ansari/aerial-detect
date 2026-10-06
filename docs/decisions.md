@@ -42,3 +42,16 @@ Each entry records the context, the decision, why, and what was traded off.
 - Decision: tiles with no objects are kept with probability 0.10 in train (seeded per tile id), and always kept elsewhere.
 - Why: thousands of empty tiles slow training without teaching much, but evaluation must include empty ground to measure false positives honestly. Seeding by tile id makes the choice identical across runs even with parallel workers.
 - Trade-off: the model sees less empty background in training; watch the false-positive rate on val.
+
+## 008: Skip empty tiles that are more than 95% no-data
+- Context: after tiling, 248 tiles were byte-identical: one all-black image, the satellite's no-data border. 275 empty tiles were more than 95% black, mostly in val/test/holdout (where all empty tiles are kept).
+- Decision: skip a tile if it has no objects and more than 95% of its pixels are exactly 0 in every band. Measured on raw pixels before JPEG compression, where no-data is exactly 0. Tiles with objects are always kept. Store `nodata_frac` in the manifest.
+- Why: blank tiles teach nothing and inflate evaluation with trivially correct "nothing here" answers.
+- Found by: checking the manifest for duplicate checksums.
+
+
+## 009: Version the tiled dataset with a DVC pipeline
+- Decision: a `prepare` stage in `dvc.yaml` builds `data/tiles` from the code, the split file and the raw xView data. `dvc.lock` (in Git) stores the hash of every input and of the output.
+- Why: the dataset is too large for Git, but every model must be traceable to the exact data it saw. DVC reruns the stage only when an input changes, and `dvc status` shows when tiles are stale.
+- Cache uses hardlinks so the 3.3 GB of tiles isn't stored twice on disk.
+- Not yet: a remote store (S3) for sharing the cache; added with the AWS deployment work.
