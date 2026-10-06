@@ -1,0 +1,13 @@
+stages:
+  prepare:
+    cmd: python -m aerial_detect.prepare --clean
+    deps:
+      - src/aerial_detect/prepare.py
+      - src/aerial_detect/tiling.py
+      - src/aerial_detect/groups.py
+      - src/aerial_detect/classes.py
+      - splits/image_splits.csv
+      - data/raw/xView_train.geojson
+      - data/raw/train_images
+    outs:
+      - data/tiles

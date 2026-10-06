@@ -1,0 +1,40 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m aerial_detect.prepare --clean
+    deps:
+    - path: data/raw/train_images
+      hash: md5
+      md5: ea085f5610be509a4d616e84bfa017b7.dir
+      size: 24678282453
+      nfiles: 846
+    - path: data/raw/xView_train.geojson
+      hash: md5
+      md5: 4a583147254201627285633c11cb600d
+      size: 372241031
+    - path: splits/image_splits.csv
+      hash: md5
+      md5: 91ce5870bcbf81691c3768903e278382
+      size: 46332
+    - path: src/aerial_detect/classes.py
+      hash: md5
+      md5: a098e852224bfaec924d04fc211e005b
+      size: 2390
+    - path: src/aerial_detect/groups.py
+      hash: md5
+      md5: 96e4ad85f1494ef5cd26d13b8845d5e8
+      size: 856
+    - path: src/aerial_detect/prepare.py
+      hash: md5
+      md5: 045577ce93ebc1459d2c6eda990e2de4
+      size: 8115
+    - path: src/aerial_detect/tiling.py
+      hash: md5
+      md5: 1da2b08054df8bdfc69a4905f84c8723
+      size: 2065
+    outs:
+    - path: data/tiles
+      hash: md5
+      md5: 3eda950c5a0c0ea7fbb02a9e2a92e2ea.dir
+      size: 3364022477
+      nfiles: 49413
