@@ -31,3 +31,14 @@ Each entry records the context, the decision, why, and what was traded off.
 - Decision: hold out a subset of South American sites totalling about 10% of images as a never-seen region. Split the remaining sites about 70/15/15 by image count, keeping each site whole.
 - Why: a random split leaks near-duplicate tiles into test and inflates scores, the same failure mode as my thesis's camera-position leak. The held-out region gives a real drift scenario to monitor and retrain on.
 - Trade-off: test scores will be lower but honest. Planned check: train once with a random split and once by site, and report the gap.
+
+## 006: Store tiles as JPEG (quality 95)
+- Context: about 35,000 tiles of 640 x 640 RGB.
+- Decision: JPEG at quality 95 instead of PNG.
+- Why: about 5-8 GB instead of about 30 GB; compression artifacts at q95 are far below what affects detection.
+- Trade-off: lossy; if small-object accuracy turns out sensitive to it, compare against PNG on a sample.
+
+## 007: Keep 10% of empty tiles in train, all in val/test/holdout
+- Decision: tiles with no objects are kept with probability 0.10 in train (seeded per tile id), and always kept elsewhere.
+- Why: thousands of empty tiles slow training without teaching much, but evaluation must include empty ground to measure false positives honestly. Seeding by tile id makes the choice identical across runs even with parallel workers.
+- Trade-off: the model sees less empty background in training; watch the false-positive rate on val.
