@@ -26,15 +26,15 @@ stages:
       size: 856
     - path: src/aerial_detect/prepare.py
       hash: md5
-      md5: 045577ce93ebc1459d2c6eda990e2de4
-      size: 8115
+      md5: f699053a864750d95fbb70e1082c86f6
+      size: 8214
     - path: src/aerial_detect/tiling.py
       hash: md5
-      md5: 1da2b08054df8bdfc69a4905f84c8723
-      size: 2065
+      md5: 968e3dd2c5812306e0a8ad02b2c452c1
+      size: 2413
     outs:
     - path: data/tiles
       hash: md5
-      md5: 3eda950c5a0c0ea7fbb02a9e2a92e2ea.dir
-      size: 3364022477
-      nfiles: 49413
+      md5: e9a8e1ad0e7fe9ae149c604dd4c84c66.dir
+      size: 2982245420
+      nfiles: 43953
