@@ -11,13 +11,14 @@ from aerial_detect.prepare import (
     crop_tile,
     keep_empty_tile,
     labels_table,
+    nodata_fraction,
     process_image,
     to_yolo,
 )
 
 
-def _write_tif(path: Path, width: int, height: int) -> None:
-    data = np.full((3, height, width), 128, dtype=np.uint8)
+def _write_tif(path: Path, width: int, height: int, value: int = 128) -> None:
+    data = np.full((3, height, width), value, dtype=np.uint8)
     with rasterio.open(
         path,
         "w",
@@ -93,3 +94,28 @@ def test_process_image_writes_tiles_labels_and_manifest_rows(tmp_path: Path) -> 
     assert sum(int(r["n_objects"]) for r in rows) == 2  # type: ignore[call-overload]
     label = (tmp_path / "out" / "labels" / "test" / "img_360_0.txt").read_text()
     assert label == "4 0.093750 0.187500 0.062500 0.062500\n"  # x 40-80, y 100-140 in the tile
+
+
+def test_nodata_fraction() -> None:
+    tile = np.zeros((10, 10, 3), dtype=np.uint8)
+    assert nodata_fraction(tile) == 1.0
+    tile[:5] = 50
+    assert nodata_fraction(tile) == 0.5
+    tile[9, 9] = (0, 0, 7)  # a pixel in the black half with one non-zero band
+    assert nodata_fraction(tile) == 0.49  # it no longer counts as no-data
+
+
+def test_blank_empty_tiles_are_skipped_but_tiles_with_objects_kept(tmp_path: Path) -> None:
+    tif = tmp_path / "black.tif"
+    _write_tif(tif, 1000, 1000, value=0)  # entirely no-data
+    job = ImageJob(
+        image_path=tif,
+        split="test",
+        site=0,
+        boxes=np.array([[400.0, 100.0, 440.0, 140.0]]),
+        groups=np.array([4]),
+        out_dir=tmp_path / "out",
+    )
+    rows = process_image(job)
+    # 4 tiles, all black: the 2 empty ones are skipped, the 2 holding the box are kept
+    assert sorted(str(r["tile_id"]) for r in rows) == ["black_0_0", "black_360_0"]

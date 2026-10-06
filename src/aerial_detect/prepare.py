@@ -30,6 +30,7 @@ TILE = 640
 OVERLAP = 0.2
 EMPTY_KEEP_RATE = 0.10  # share of object-free tiles kept in train (decision 007)
 JPEG_QUALITY = 95  # decision 006
+NODATA_MAX = 0.95  # skip empty tiles that are more than 95% no-data (decision 008)
 
 
 @dataclass(frozen=True)
@@ -87,6 +88,11 @@ def keep_empty_tile(tile_id: str, split: str, rate: float = EMPTY_KEEP_RATE, see
     return random.Random(f"{seed}:{tile_id}").random() < rate
 
 
+def nodata_fraction(tile: np.ndarray) -> float:
+    """Share of pixels that are exactly 0 in every band (the satellite's no-data fill)."""
+    return float(np.all(tile == 0, axis=2).mean())
+
+
 def process_image(job: ImageJob) -> list[dict[str, object]]:
     """Tile one image, write tile JPEGs and YOLO labels, return one manifest row per tile."""
     with rasterio.open(job.image_path) as src:
@@ -105,11 +111,17 @@ def process_image(job: ImageJob) -> list[dict[str, object]]:
         tile_boxes, keep = clip_boxes(job.boxes, window)
         tile_groups = job.groups[keep].astype(int)
         tile_id = f"{job.image_path.stem}_{window[0]}_{window[1]}"
-        if len(keep) == 0 and not keep_empty_tile(tile_id, job.split):
-            continue
+        tile = crop_tile(img, window)
+        nodata = nodata_fraction(tile)
+
+        if len(keep) == 0:
+            if nodata > NODATA_MAX:
+                continue  # blank satellite border: nothing to learn or evaluate
+            if not keep_empty_tile(tile_id, job.split):
+                continue
 
         jpg = img_dir / f"{tile_id}.jpg"
-        Image.fromarray(crop_tile(img, window)).save(jpg, quality=JPEG_QUALITY)
+        Image.fromarray(tile).save(jpg, quality=JPEG_QUALITY)
         (lbl_dir / f"{tile_id}.txt").write_text(to_yolo(tile_boxes, tile_groups))
 
         counts = np.bincount(tile_groups, minlength=len(GROUP_NAMES))
@@ -125,6 +137,7 @@ def process_image(job: ImageJob) -> list[dict[str, object]]:
                 "y1": window[3],
                 "n_objects": int(len(keep)),
                 **{f"n_{name}": int(c) for name, c in zip(GROUP_NAMES, counts, strict=True)},
+                "nodata_frac": round(nodata, 4),
                 "sha256": hashlib.sha256(jpg.read_bytes()).hexdigest(),
             }
         )
