@@ -88,3 +88,5 @@ Findings from `notebooks/01_explore.ipynb`.
 - Every group appears in every split. Aircraft is the weakest: only 62% of non-holdout aircraft are in train, because airport sites are few and whole sites move together.
 
 - Checked 20 seeds for a more even class mix; the best (seed 14) reduced the worst group's deviation from a 70% train share only from 0.141 to 0.133. Kept seed 0: the limit comes from keeping whole sites together (aircraft sit in a few airport sites), not from the split algorithm.
+
+- Some objects are annotated twice with identical boxes; duplicates are dropped in `labels_table`.

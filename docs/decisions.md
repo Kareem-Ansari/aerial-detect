@@ -55,3 +55,17 @@ Each entry records the context, the decision, why, and what was traded off.
 - Why: the dataset is too large for Git, but every model must be traceable to the exact data it saw. DVC reruns the stage only when an input changes, and `dvc status` shows when tiles are stale.
 - Cache uses hardlinks so the 3.3 GB of tiles isn't stored twice on disk.
 - Not yet: a remote store (S3) for sharing the cache; added with the AWS deployment work.
+
+
+## 010: Baseline detector and experiment tracking
+- Decision: fine-tune Ultralytics YOLO11s (COCO-pretrained) at 640 px, batch 12, 30 epochs, seed 0. Each run is logged to MLflow with its parameters, per-epoch curves, per-class AP on val, artifacts, the Git commit, a dirty flag and the DVC data version.
+- Why: a standard, fast baseline that fits an 8 GB GPU. Per-class AP is essential because two groups make up 88% of objects. Commit + data hash make every result reproducible.
+- Batch 12 (not 16): batch 16 ran out of GPU memory during validation on dense tiles. Final validation uses half the training batch.
+- Test split untouched until a final model is chosen; all comparisons use val.
+- Training dependencies live in a separate `train` group so CI stays fast. License note: Ultralytics is AGPL-3.0.
+
+## 011: Shift the last tile instead of adding a near-duplicate
+- Context: the first smoke test showed tiles 4 px apart (e.g. `1141_1024_2560` and `1141_1024_2564`). When regular tiles end just short of the edge, snapping added a second, almost identical tile.
+- Decision: if the remaining gap is no larger than the overlap (128 px) and there is more than one tile, shift the last tile to the edge instead of adding one. Coverage is unchanged (tested for many widths).
+- Also: xView contains duplicate annotations (identical boxes); `labels_table` now drops them.
+- Found by: reading the training log warnings.
