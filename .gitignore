@@ -8,3 +8,6 @@ data/
 *.tif
 *.zip
 mlruns/
+runs/
+mlflow.db
+*.pt
