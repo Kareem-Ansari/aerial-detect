@@ -68,7 +68,7 @@ def main() -> None:
     )
     parser.add_argument("--model", default="yolo11s.pt")
     parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--batch", type=int, default=16)
+    parser.add_argument("--batch", type=int, default=12)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--fraction", type=float, default=1.0, help="share of train tiles")
     parser.add_argument("--smoke", action="store_true", help="1 epoch on 5%% of the data")
@@ -117,7 +117,7 @@ def main() -> None:
             seed=0,
             deterministic=True,
             max_det=1000,  # dense tiles can hold hundreds of buildings
-            project=str(RUNS / "train"),
+            project=str((RUNS / "train").resolve()),
             name=run_name,
             exist_ok=True,
         )
@@ -139,10 +139,10 @@ def main() -> None:
             data=str(data_yaml),
             split="val",
             imgsz=args.imgsz,
-            batch=args.batch,
+            batch=max(1, args.batch // 2),  # dense tiles: smaller batch avoids GPU memory errors
             max_det=1000,
             device=0,
-            project=str(RUNS / "val"),
+            project=str((RUNS / "val").resolve()),
             name=run_name,
             exist_ok=True,
         )

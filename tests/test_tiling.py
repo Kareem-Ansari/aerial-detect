@@ -79,3 +79,17 @@ def test_empty_input_returns_empty() -> None:
     out, keep = clip_boxes(np.zeros((0, 4)), (0, 0, 640, 640))
     assert out.shape == (0, 4)
     assert keep.shape == (0,)
+
+
+def test_small_gap_shifts_last_tile_instead_of_adding_one() -> None:
+    # 3204 px: regular tiles end at 3200, leaving a 4 px gap
+    xs = sorted({x0 for x0, _, _, _ in tile_windows(3204, 640)})
+    assert xs == [0, 512, 1024, 1536, 2048, 2564]
+
+
+@pytest.mark.parametrize("width", [641, 700, 1000, 1152, 1153, 1280, 3204, 3330])
+def test_every_pixel_covered_for_many_widths(width: int) -> None:
+    covered = np.zeros(width, dtype=bool)
+    for x0, _, x1, _ in tile_windows(width, 640):
+        covered[x0:x1] = True
+    assert covered.all()

@@ -59,7 +59,9 @@ def labels_table(raw: pd.DataFrame) -> pd.DataFrame:
             "ymax": boxes[3].to_numpy(),
         }
     )
-    return out[out["group"] >= 0].reset_index(drop=True)
+    out = out[out["group"] >= 0]
+    out = out.drop_duplicates(["image_id", "group", "xmin", "ymin", "xmax", "ymax"])
+    return out.reset_index(drop=True)
 
 
 def to_yolo(boxes: np.ndarray, groups: np.ndarray, tile: int = TILE) -> str:

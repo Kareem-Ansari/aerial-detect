@@ -119,3 +119,14 @@ def test_blank_empty_tiles_are_skipped_but_tiles_with_objects_kept(tmp_path: Pat
     rows = process_image(job)
     # 4 tiles, all black: the 2 empty ones are skipped, the 2 holding the box are kept
     assert sorted(str(r["tile_id"]) for r in rows) == ["black_0_0", "black_360_0"]
+
+
+def test_labels_table_drops_duplicate_boxes() -> None:
+    raw = pd.DataFrame(
+        {
+            "image_id": ["a.tif", "a.tif"],
+            "type_id": [73, 73],
+            "bounds_imcoords": ["1,2,3,4", "1,2,3,4"],
+        }
+    )
+    assert len(labels_table(raw)) == 1

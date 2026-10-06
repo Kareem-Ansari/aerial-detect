@@ -6,11 +6,19 @@ Window = tuple[int, int, int, int]  # (x0, y0, x1, y1) in image pixels
 
 
 def _starts(length: int, tile: int, stride: int) -> list[int]:
-    """Start positions along one axis; the last tile is snapped back to the edge."""
+    """Start positions along one axis, with the last tile ending exactly at the edge.
+
+    If the regular tiles leave only a small gap (no bigger than the overlap), the last
+    tile is shifted to the edge instead of adding a near-duplicate tile."""
     if length <= tile:
         return [0]
     starts = list(range(0, length - tile + 1, stride))
-    if starts[-1] + tile < length:
+    gap = length - (starts[-1] + tile)
+    if gap == 0:
+        return starts
+    if gap <= tile - stride and len(starts) > 1:
+        starts[-1] = length - tile  # shift: the previous tile still overlaps it
+    else:
         starts.append(length - tile)
     return starts
 
