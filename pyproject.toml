@@ -28,6 +28,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "dvc>=3.67.1",
     "ipykernel>=7.4.0",
     "jupyter>=1.1.1",
     "mypy>=2.4.0",
