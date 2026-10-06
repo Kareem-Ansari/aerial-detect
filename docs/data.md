@@ -64,3 +64,27 @@ Findings from `notebooks/01_explore.ipynb`.
 - **Split plan:**
   - Hold out a subset of South American sites totalling about 10% of images, never used in training. Reserved as the "new region" for the drift and retraining demo. Exact sites are chosen in `split.py`.
   - Split the remaining sites into train/val/test by whole site, targeting about 70/15/15 of *images* (not sites), so the 144-image site can't dominate one split.
+
+  - **Split (seed [0 or your best seed]), saved in `splits/image_splits.csv`:**
+
+| Split | Images | Share |
+| --- | --- | --- |
+| train | 521 | 61.6% (69.9% of non-holdout) |
+| val | 112 | 13.2% (15.0%) |
+| test | 112 | 13.2% (15.0%) |
+| holdout | 101 | 11.9%: 7 South American sites, never used in training |
+
+- Objects per group and split:
+
+| Group | train | val | test | holdout |
+| --- | --- | --- | --- | --- |
+| building | 157,220 | 57,357 | 64,895 | 41,361 |
+| small_vehicle | 114,984 | 26,264 | 54,921 | 23,183 |
+| large_vehicle | 22,319 | 8,908 | 8,675 | 3,166 |
+| ship | 3,415 | 473 | 687 | 566 |
+| storage_tank | 927 | 263 | 353 | 169 |
+| aircraft | 659 | 218 | 186 | 168 |
+
+- Every group appears in every split. Aircraft is the weakest: only 62% of non-holdout aircraft are in train, because airport sites are few and whole sites move together.
+
+- Checked 20 seeds for a more even class mix; the best (seed 14) reduced the worst group's deviation from a 70% train share only from 0.141 to 0.133. Kept seed 0: the limit comes from keeping whole sites together (aircraft sit in a few airport sites), not from the split algorithm.
