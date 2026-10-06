@@ -69,3 +69,12 @@ Each entry records the context, the decision, why, and what was traded off.
 - Decision: if the remaining gap is no larger than the overlap (128 px) and there is more than one tile, shift the last tile to the edge instead of adding one. Coverage is unchanged (tested for many widths).
 - Also: xView contains duplicate annotations (identical boxes); `labels_table` now drops them.
 - Found by: reading the training log warnings.
+
+
+## 012: Inference API design
+- Whole-image inference reuses the training tiler (640 px, 20% overlap) so the model sees the same kind of input it was trained on.
+- Duplicate detections across overlapping tiles are merged with class-wise NMS using two rules: IoU > 0.5, or intersection-over-smaller-area > 0.7. The second rule removes a partial box cut by a tile edge that sits inside the full box from the neighbouring tile; IoU alone misses it.
+- Tiles are flipped RGB -> BGR before prediction: Ultralytics treats NumPy input as OpenCV-style BGR. Skipping this silently lowers accuracy.
+- Endpoints are plain `def` (run in FastAPI's thread pool) because inference blocks; a lock serialises access to the model.
+- `create_app(predictor)` lets tests inject a fake model, so API tests run in CI without a GPU or weights.
+- Responses: JSON (pixel boxes + lon/lat centres) and GeoJSON polygons for georeferenced images; unreadable uploads -> 400, GeoJSON for non-georeferenced images -> 422.
