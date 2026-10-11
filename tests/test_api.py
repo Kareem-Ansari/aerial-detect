@@ -90,3 +90,20 @@ def test_geojson_for_georeferenced_image(client: TestClient) -> None:
 def test_geojson_needs_georeference(client: TestClient) -> None:
     r = client.post("/predict/geojson", files={"file": ("img.png", png_bytes())})
     assert r.status_code == 422
+
+
+def test_vrt_files_are_rejected(client: TestClient) -> None:
+    vrt = b'<VRTDataset rasterXSize="10" rasterYSize="10"></VRTDataset>'
+    r = client.post("/predict", files={"file": ("x.vrt", vrt)})
+    assert r.status_code == 400
+
+
+def test_oversized_upload_is_413(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("aerial_detect.api.MAX_UPLOAD_BYTES", 1000)
+    r = client.post("/predict", files={"file": ("img.tif", geotiff_bytes())})
+    assert r.status_code == 413
+
+
+def test_error_message_does_not_leak_internals(client: TestClient) -> None:
+    r = client.post("/predict", files={"file": ("x.tif", b"not an image")})
+    assert r.json()["detail"] == "Could not read image; send a GeoTIFF, PNG or JPEG"

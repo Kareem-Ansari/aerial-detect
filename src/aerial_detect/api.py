@@ -28,6 +28,9 @@ from aerial_detect.inference import TilePredictor, predict_image, yolo_predictor
 from aerial_detect.prepare import TILE
 
 DEFAULT_WEIGHTS = "runs/train/yolo11s-e30/weights/best.pt"
+ALLOWED_DRIVERS = ["GTiff", "PNG", "JPEG"]  # never VRT etc., which can reference other files
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
+MAX_PIXELS = 12_000 * 12_000  # guards against decompression bombs
 MinScore = Annotated[float, Query(ge=0, le=1, description="Drop detections below this score")]
 
 
@@ -66,7 +69,9 @@ def read_image(data: bytes) -> tuple[np.ndarray, Any, CRS | None]:
     """Decode GeoTIFF, PNG or JPEG bytes to H x W x 3 uint8 pixels, plus transform and CRS."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", NotGeoreferencedWarning)
-        with MemoryFile(data) as mem, mem.open() as src:
+        with MemoryFile(data) as mem, mem.open(driver=ALLOWED_DRIVERS) as src:
+            if src.width * src.height > MAX_PIXELS:
+                raise ValueError("image too large")
             img = np.transpose(src.read(), (1, 2, 0))
             crs, transform = src.crs, src.transform
     if img.dtype != np.uint8:
@@ -101,10 +106,14 @@ def create_app(predictor: TilePredictor | None = None) -> FastAPI:
     model_lock = threading.Lock()  # one request uses the model at a time
 
     def run(file: UploadFile, min_score: float) -> Prediction:
+        data = file.file.read(MAX_UPLOAD_BYTES + 1)
+        if len(data) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File too large (max 200 MB)")
         try:
-            img, transform, crs = read_image(file.file.read())
+            img, transform, crs = read_image(data)
         except (RasterioIOError, ValueError) as err:
-            raise HTTPException(status_code=400, detail=f"Could not read image: {err}") from err
+            msg = "Could not read image; send a GeoTIFF, PNG or JPEG"
+            raise HTTPException(status_code=400, detail=msg) from err
         start = time.perf_counter()
         with model_lock:
             boxes, scores, classes = predict_image(img, app.state.predictor)

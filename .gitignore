@@ -11,3 +11,8 @@ mlruns/
 runs/
 mlflow.db
 *.pt
+.env
+.env.*
+*.pem
+*.key
+.aws/
