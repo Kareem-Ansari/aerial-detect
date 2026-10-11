@@ -25,6 +25,7 @@ from rasterio.warp import transform as warp_transform
 
 from aerial_detect.groups import GROUP_NAMES
 from aerial_detect.inference import TilePredictor, predict_image, yolo_predictor
+from aerial_detect.prepare import TILE
 
 DEFAULT_WEIGHTS = "runs/train/yolo11s-e30/weights/best.pt"
 MinScore = Annotated[float, Query(ge=0, le=1, description="Drop detections below this score")]
@@ -92,6 +93,8 @@ def create_app(predictor: TilePredictor | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         weights = os.environ.get("MODEL_PATH", DEFAULT_WEIGHTS)
         app.state.predictor = predictor or yolo_predictor(weights)
+        # Warm-up: the first GPU call is slow, so make it here, not on a user's request
+        app.state.predictor([np.zeros((TILE, TILE, 3), dtype=np.uint8)])
         yield
 
     app = FastAPI(title="aerial-detect", version="0.1.0", lifespan=lifespan)

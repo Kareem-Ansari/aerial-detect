@@ -25,3 +25,12 @@
 - Image-level evaluation: merge detections across overlapping tiles, count each object once.
 - Large-vehicle confusion: inspect the confusion matrix; consider splitting the group.
 - Test split and the held-out South America region: only after choosing a final model.
+
+## API latency (RTX A2000 8 GB laptop, whole images ~3,300 x 3,200 px, ~42 tiles)
+| Image | Detections | Time |
+| --- | --- | --- |
+| 10.tif | 73 | 390 ms (1,651 ms on the first, cold request) |
+| 111.tif | 1,490 | 488 ms |
+| 112.tif | 3,376 | 563 ms |
+- First request includes GPU warm-up; a warm-up prediction at startup would hide it.
+- Cross-tile merging stays fast even at 3,000+ detections.
