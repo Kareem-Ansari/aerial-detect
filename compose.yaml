@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    image: aerial-detect:0.1.0
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: /models/best.pt
+    volumes:
+      - ./runs/train/yolo11s-e30/weights:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

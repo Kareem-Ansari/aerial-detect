@@ -78,3 +78,19 @@ Each entry records the context, the decision, why, and what was traded off.
 - Endpoints are plain `def` (run in FastAPI's thread pool) because inference blocks; a lock serialises access to the model.
 - `create_app(predictor)` lets tests inject a fake model, so API tests run in CI without a GPU or weights.
 - Responses: JSON (pixel boxes + lon/lat centres) and GeoJSON polygons for georeferenced images; unreadable uploads -> 400, GeoJSON for non-georeferenced images -> 422.
+
+## 013: Security basics before deployment
+- Repo: data, weights, run logs and MLflow DB are git-ignored; pre-commit blocks private keys and files over 1 MB; GitHub secret scanning, push protection and Dependabot are on; `.env` files are ignored by Git and Docker.
+- API: only GeoTIFF/PNG/JPEG are decoded (GDAL formats like VRT can reference other files on the server); uploads capped at 200 MB and images at 12,000 x 12,000 px before any pixels are read; error responses are generic and don't expose library internals.
+- Model weights are only ever loaded from our own training runs (PyTorch .pt files are pickles and can execute code).
+
+
+## 013: Container image for the API
+- Two-stage build: uv installs locked dependencies (`--frozen`, runtime + `train` group, no dev tools); the runtime stage copies only `/app`.
+- Dependencies install before the code is copied, so code changes rebuild in seconds; uv's cache is mounted during builds.
+- Model weights are mounted at runtime (`MODEL_PATH`, read-only volume), not baked in: swapping models needs no rebuild.
+- No CUDA base image: PyTorch wheels bundle the CUDA runtime; the host driver comes through the NVIDIA Container Toolkit (`--gpus all`). Without a GPU the same image falls back to CPU.
+- Non-root user; listens on 0.0.0.0; HEALTHCHECK calls /health.
+- `.dockerignore` keeps the build context to a few MB instead of ~30 GB.
+- Image size ~[3.67] GB, mostly PyTorch/CUDA; a CPU-only variant is planned for cloud deployment.
+- The API warms the model up at startup, so the first request isn't ~4x slower.
