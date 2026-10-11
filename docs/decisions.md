@@ -92,5 +92,5 @@ Each entry records the context, the decision, why, and what was traded off.
 - No CUDA base image: PyTorch wheels bundle the CUDA runtime; the host driver comes through the NVIDIA Container Toolkit (`--gpus all`). Without a GPU the same image falls back to CPU.
 - Non-root user; listens on 0.0.0.0; HEALTHCHECK calls /health.
 - `.dockerignore` keeps the build context to a few MB instead of ~30 GB.
-- Image size ~[3.67] GB, mostly PyTorch/CUDA; a CPU-only variant is planned for cloud deployment.
+- Image is 11.3 GB on disk (3.67 GB compressed), almost all PyTorch and CUDA libraries
 - The API warms the model up at startup, so the first request isn't ~4x slower.
